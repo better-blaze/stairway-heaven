@@ -491,7 +491,7 @@ function showSummonConfirm() {
 
   // 오프라인 모드 또는 나보다 아래에 플레이어가 없는 경우: 확인창 없이 바로 처리
   const hasCandidates = state.online.enabled && (
-    Object.values(state.online.otherPlayers).some(op => op.step < myStep) ||
+    Object.values(state.online.otherPlayers).some(op => op.toStep < myStep) ||
     state.dummyPlayers.some(d => Math.floor(d.stepPos) < myStep)
   );
 
@@ -526,7 +526,7 @@ function executeSummon() {
   // 나보다 아래 있는 플레이어 목록 (온라인 + 더미 통합)
   const candidates = [
     ...Object.entries(state.online.otherPlayers)
-      .filter(([, op]) => op.step < myStep)
+      .filter(([, op]) => op.toStep < myStep)
       .map(([uid, op]) => ({ uid, name: op.name, isDummy: false })),
     ...state.dummyPlayers
       .filter(d => Math.floor(d.stepPos) < myStep)
@@ -786,7 +786,7 @@ function cutInLine() {
   // 나보다 위에 있는 플레이어 중 가장 가까운 한 명(바로 앞 등수) 선택
   // 온라인 플레이어 + 더미 플레이어 모두 후보에 포함
   const candidates = [
-    ...Object.values(online.otherPlayers).map(op => ({ name: op.name, step: op.step })),
+    ...Object.values(online.otherPlayers).map(op => ({ name: op.name, step: op.toStep })),
     ...state.dummyPlayers.map(d => ({ name: d.name, step: Math.floor(d.stepPos) })),
   ];
   const justAbove = candidates
@@ -827,7 +827,7 @@ function showFriendFollowOverlay() {
     inputEl.style.display = 'none';
 
     const above = Object.values(state.online.otherPlayers)
-      .filter(op => op.step > state.player.stepIndex);
+      .filter(op => op.toStep > state.player.stepIndex);
 
     if (above.length === 0) {
       subEl.textContent = '위에 있는 친구가 없습니다';
@@ -1586,7 +1586,7 @@ function applyItemToDummy(dummyId, itemId) {
       const myStep = Math.floor(dummy.stepPos);
       const candidates = [
         state.player.stepIndex,
-        ...Object.values(state.online.otherPlayers).map(op => op.step),
+        ...Object.values(state.online.otherPlayers).map(op => op.toStep),
         ...state.dummyPlayers.filter(d => d.id !== dummyId).map(d => Math.floor(d.stepPos)),
       ].filter(s => s > myStep).sort((a, b) => a - b);
       if (candidates.length) dummy.stepPos = Math.min(candidates[0] + 2, maxStep);
@@ -2019,7 +2019,7 @@ async function showFinalRanking() {
     all = [
       { name: myName, step: state.player.stepIndex, charIndex: state.player.charIndex },
       ...Object.values(state.online.otherPlayers).map(op => ({
-        name: op.name, step: op.step, charIndex: op.charIndex ?? 0,
+        name: op.name, step: op.toStep, charIndex: op.charIndex ?? 0,
       })),
     ].sort((a, b) => b.step - a.step);
   }
@@ -2076,7 +2076,7 @@ function updateAdminRanking() {
   const myName = state.online.playerName || '나';
   const all = [
     { name: myName, step: state.player.stepIndex },
-    ...onlinePlayers.map(op => ({ name: op.name, step: op.step })),
+    ...onlinePlayers.map(op => ({ name: op.name, step: op.toStep })),
   ].sort((a, b) => b.step - a.step);
   list.innerHTML = all.map((p, i) => {
     const h = (p.step / CFG.STEPS_PER_M).toFixed(1);
