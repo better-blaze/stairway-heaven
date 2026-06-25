@@ -2395,6 +2395,7 @@ const state = {
     summonedBy             : '',   // 소환한 플레이어 이름 (메시지 표시용)
     summonPortal           : null, // 차원의 문 연출 상태: null | { startAt, targetName, worldX, worldY }
     summonCasterFreezeUntil: 0,    // 소환 성공 후 시전자 채찍 게이지 일시 정지 만료 시각
+    prevDriftFeetY         : 0,    // 표류 직전 프레임 발바닥 y — 착지 터널링 감지용
   },
   camera: { x: 0, y: 0 },
   cardOverlay : { active: false }, // 카드 선택 오버레이 활성 여부
@@ -3530,6 +3531,7 @@ function loop() {
     player.driftStartAt      = now;
     player.driftEndsAt       = now + CFG.DRIFT_SECONDS * 1000;
     player.fallFromStepIndex = -1;         // 어떤 계단에도 착지 허용
+    player.prevDriftFeetY   = currentFlyingY; // 터널링 감지 초기값
     player.phase             = 'drifting';
     console.log('[천사의 날개] 만료 → 낙하산 자동 발동, 표류 전환');
   }
@@ -3546,15 +3548,19 @@ function loop() {
     player.phase        = 'drifting';
     player.driftX       = steps[player.stepIndex].x;
     // 잠금 동안 낙하한 발바닥 y를 표류 시작점으로 사용 (낙하산 시 더 적게 낙하)
-    player.driftY       = (player.fallFromY - CFG.STEP_TOP) + calcLockDrop();
-    player.driftStartAt = now;
-    player.driftEndsAt  = now + CFG.DRIFT_SECONDS * 1000;
+    player.driftY         = (player.fallFromY - CFG.STEP_TOP) + calcLockDrop();
+    player.driftStartAt   = now;
+    player.driftEndsAt    = now + CFG.DRIFT_SECONDS * 1000;
+    // 낙하 시작점으로 초기화: falling_locked 구간에서 지나친 계단(N-1 ~ N-8)도
+    // 첫 프레임 tunneled 조건으로 감지하기 위해 driftY(낙하 끝점)가 아닌 낙하 직전 위치를 사용
+    player.prevDriftFeetY = player.fallFromY - CFG.STEP_TOP;
   }
 
   // 표류 중: 착지 판정 + 시간 초과
   if (player.phase === 'drifting') {
     const s        = (now - player.driftStartAt) / 1000;
     const feetY    = calcDriftY(s);
+    const prevFeetY = player.prevDriftFeetY; // 이전 프레임 발바닥 y (터널링 감지용)
 
     // 시작 계단 위면보다 아래로 추락하면 즉시 게임오버
     const floorY = steps[player.startStepIndex].y - CFG.STEP_TOP;
@@ -3571,8 +3577,13 @@ function loop() {
       // 추락 시작 발판은 착지 대상에서 제외 — 표류 시작 직후 같은 발판에 즉시 복귀하는 버그 방지
       if (i === player.fallFromStepIndex) continue;
 
-      // 발바닥이 발판 윗면(±LAND_TOL px) 에 정확히 닿을 때만 착지 인정
-      if (feetY < surfaceY || feetY > surfaceY + CFG.LAND_TOL) continue;
+      // 착지 판정:
+      //   inWindow — 이번 프레임에 발바닥이 12px 창 안에 있는 정상 케이스
+      //   tunneled — 이전 프레임엔 발판 위쪽, 이번 프레임엔 창 아래쪽 → 한 프레임에 통과한 터널링
+      // (고속 낙하 + 낮은 프레임율 조합 시 12px 창을 건너뛰는 버그 방지)
+      const inWindow = feetY >= surfaceY && feetY <= surfaceY + CFG.LAND_TOL;
+      const tunneled = prevFeetY < surfaceY && feetY > surfaceY + CFG.LAND_TOL;
+      if (!inWindow && !tunneled) continue;
       if (Math.abs(player.driftX - step.x) >= (CFG.STEP_W + CFG.PLAYER_W) / 2) continue;
 
       player.phase              = 'reviving';
@@ -3583,6 +3594,9 @@ function loop() {
       player.parachuteDeployed  = false; // 착지: 낙하산 접기
       break;
     }
+
+    // 다음 프레임 터널링 감지를 위해 현재 발바닥 y 저장
+    player.prevDriftFeetY = feetY;
 
     // 5초 초과 → 게임오버 (driftY를 현재 위치로 고정)
     if (player.phase === 'drifting' && now >= player.driftEndsAt) {
