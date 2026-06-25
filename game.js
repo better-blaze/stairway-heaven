@@ -836,8 +836,8 @@ function showFriendFollowOverlay() {
     } else {
       // 무작위 1명 선택
       const chosen = above[Math.floor(Math.random() * above.length)];
-      state.friendFollow.targetStep = chosen.step;
-      const h = (chosen.step / CFG.STEPS_PER_M).toFixed(1);
+      state.friendFollow.targetStep = chosen.toStep;
+      const h = (chosen.toStep / CFG.STEPS_PER_M).toFixed(1);
       subEl.textContent = `${chosen.name} (${h}m)님을 따라가시겠습니까?`;
       confirmEl.style.display = '';
     }
