@@ -1439,7 +1439,7 @@ function listenCurses(pin) {
     if (curse.caster === state.online.playerName) return;   // 내가 건 저주는 무시
 
     if (isCurseInProgress()) {
-      state.curse.queue.push(curse.type);
+      state.curse.queue.push({ type: curse.type, isCaster: false }); // 피해자 → 확인 창 없이 처리
     } else {
       // countdownUntil이 아직 미래면 카운트다운 오버레이 표시 후 발동, 이미 지났으면 즉시 발동
       const until = curse.countdownUntil ?? Date.now();
@@ -1480,7 +1480,7 @@ function listenIncomingItems(pin, uid) {
     if (adminCurseMap[data.itemId]) {
       const curseType = adminCurseMap[data.itemId];
       if (isCurseInProgress()) {
-        state.curse.queue.push(curseType);
+        state.curse.queue.push({ type: curseType, isCaster: false }); // 관리자 즉시 저주 → 확인 창 없이
       } else {
         state.curse.countdownActive   = true;
         state.curse.countdownItem     = curseType;
@@ -2121,7 +2121,7 @@ function isCurseInProgress() {
 // 저주 확인 창 표시 — 이미 진행 중이면 대기열에 추가
 function startCurseConfirm(itemId) {
   if (isCurseInProgress()) {
-    state.curse.queue.push(itemId);
+    state.curse.queue.push({ type: itemId, isCaster: true }); // 내 카드 → 확인 창 필요
     console.log(`[저주] ${itemId} 대기열 추가 (대기: ${state.curse.queue.length}개)`);
     return;
   }
@@ -2192,9 +2192,17 @@ function activateCurseEffect(itemId) {
 
 // 효과 종료 후 대기열의 다음 저주를 처리
 function processNextCurse() {
-  if (state.curse.queue.length > 0) {
-    const nextId = state.curse.queue.shift();
-    startCurseConfirm(nextId);
+  if (state.curse.queue.length === 0) return;
+  const next = state.curse.queue.shift();
+  if (next.isCaster) {
+    // 내가 뽑은 저주 — 확인 창부터 표시
+    startCurseConfirm(next.type);
+  } else {
+    // 남이 건 저주 — 확인 창 없이 바로 카운트다운
+    state.curse.countdownActive   = true;
+    state.curse.countdownItem     = next.type;
+    state.curse.countdownUntil    = Date.now() + CFG.CURSE_COUNTDOWN_S * 1000;
+    state.curse.countdownIsCaster = false;
   }
 }
 
