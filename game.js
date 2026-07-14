@@ -1214,6 +1214,35 @@ async function joinOnline(name, pin) {
   }
 }
 
+// 오프라인 플레이 버튼 클릭 — 바로 시작하지 않고 비밀번호 프롬프트를 띄움
+function showOfflinePasswordPrompt() {
+  const prompt = document.getElementById('offlinePasswordPrompt');
+  if (!prompt) return;
+  prompt.classList.remove('hidden');
+  const input = document.getElementById('offlinePasswordInput');
+  if (input) { input.value = ''; input.focus(); }
+}
+
+// 오프라인 플레이 비밀번호 확인 — 정답이면 오프라인 모드 시작, 틀리면 안내
+function verifyOfflinePassword() {
+  const input = document.getElementById('offlinePasswordInput');
+  const msg   = document.getElementById('offlinePasswordMsg');
+  if (!input) return;
+  if (input.value === OFFLINE_PWD) {
+    input.value = '';
+    if (msg) msg.textContent = '';
+    document.getElementById('offlinePasswordPrompt').classList.add('hidden');
+    startOffline();
+  } else {
+    if (msg) {
+      msg.textContent = '비밀번호가 틀렸습니다.';
+      setTimeout(() => { msg.textContent = ''; }, 2000);
+    }
+    input.value = '';
+    input.focus();
+  }
+}
+
 // 오프라인 모드로 시작
 function startOffline() {
   state.online.enabled    = false;
@@ -1675,6 +1704,7 @@ const HOF_PATH_INDIVIDUAL = 'stairway/hallOfFame/individual'; // 개인 기록
 const HOF_PATH_CLASS      = 'stairway/hallOfFame/class';      // 반 합동기록
 const HOF_PWD             = '0257';
 const HOST_PWD            = '0257'; // 방 만들기 잠금 비밀번호 — 여기서 변경
+const OFFLINE_PWD         = '0257'; // 오프라인 플레이 잠금 비밀번호 — 여기서 변경
 const HOF_LIMIT           = 10;
 let _lastSumScore = 0; // 시상대 화면의 총합 점수 (반 합동기록 저장 시 사용)
 
@@ -4318,7 +4348,7 @@ document.getElementById('summonConfirmNo').addEventListener('click', () => {
   });
 
   // 오프라인 플레이
-  document.getElementById('btnOffline')?.addEventListener('click', startOffline);
+  document.getElementById('btnOffline')?.addEventListener('click', showOfflinePasswordPrompt);
 
   // 캐릭터 선택 후 입장
   document.getElementById('btnCharSelect')?.addEventListener('click', openCharSelectOverlay);

@@ -1065,6 +1065,46 @@ html, body {
   margin-top: 2px;
 }
 
+/* 오프라인 플레이 비밀번호 프롬프트 */
+#offlinePasswordPrompt {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0;
+}
+#offlinePasswordInput {
+  flex: 1;
+  min-width: 120px;
+  padding: 10px 14px;
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.20);
+  border-radius: 10px;
+  color: #fff;
+  font-size: 15px;
+  outline: none;
+  letter-spacing: 4px;
+}
+#offlinePasswordInput:focus { border-color: rgba(255,215,0,0.5); }
+#offlinePasswordPrompt button {
+  padding: 10px 16px;
+  background: #4a9eff;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+#offlinePasswordPrompt button:hover { background: #2a7ee0; }
+#offlinePasswordMsg {
+  width: 100%;
+  font-size: 12px;
+  color: #ff6b81;
+  min-height: 16px;
+}
+
 #hostQuizArea {
   display: flex;
   align-items: center;
